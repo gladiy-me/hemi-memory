@@ -199,7 +199,7 @@ export default function MemoryGame() {
       )}
 
       <footer className="mt-10 text-center text-gray-700 text-sm">
-        Made with ❤️ by <a href="https://x.com/Ivankakone" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">Gladii</a>
+        Made with ❤️ by <a href="https://x.com/Ivankakone" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">Gladiy</a>
       </footer>
     </div>
   );
