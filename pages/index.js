@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from '../lib/supabaseClient';
 
 const initialCards = [
   { id: 1, image: "/images/aries.png" },
@@ -26,12 +27,12 @@ export default function MemoryGame() {
   const [showRules, setShowRules] = useState(false);
   const [time, setTime] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
-  const [playerName, setPlayerName] = useState("");
   const [leaderboard, setLeaderboard] = useState([]);
+  const [playerName, setPlayerName] = useState("");
+  const [nameSubmitted, setNameSubmitted] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem("leaderboard");
-    if (stored) setLeaderboard(JSON.parse(stored));
+    fetchLeaderboard();
   }, []);
 
   useEffect(() => {
@@ -44,8 +45,29 @@ export default function MemoryGame() {
     return () => clearInterval(timer);
   }, [timerRunning]);
 
+  async function saveResult(name, score, time) {
+    const { error } = await supabase
+      .from('leaderboard')
+      .insert([{ name, score, time }]);
+    if (error) console.error('Ошибка сохранения:', error);
+  }
+
+  async function fetchLeaderboard() {
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .order('time', { ascending: true })
+      .limit(5);
+
+    if (error) {
+      console.error('Ошибка загрузки лидерборда:', error);
+    } else {
+      setLeaderboard(data);
+    }
+  }
+
   function handleFlip(card) {
-    if (!playerName) return alert("Please enter your name to play!");
+    if (!nameSubmitted) return alert("Please enter your name to start the game.");
     if (flipped.length === 2 || flipped.includes(card.uniqueId) || matched.includes(card.uniqueId)) {
       return;
     }
@@ -69,16 +91,12 @@ export default function MemoryGame() {
   }, [flipped, cards]);
 
   useEffect(() => {
-    if (matched.length === cards.length && timerRunning) {
+    if (matched.length === cards.length && timerRunning && playerName) {
       setTimerRunning(false);
-      const newEntry = { name: playerName, score, time };
-      const updated = [...leaderboard, newEntry]
-        .sort((a, b) => a.time - b.time)
-        .slice(0, 5);
-      setLeaderboard(updated);
-      localStorage.setItem("leaderboard", JSON.stringify(updated));
+      saveResult(playerName, score, time);
+      fetchLeaderboard();
     }
-  }, [matched, cards.length, timerRunning]);
+  }, [matched, cards.length, timerRunning, playerName, score, time]);
 
   function resetGame() {
     setCards(shuffleArray(initialCards));
@@ -113,13 +131,24 @@ export default function MemoryGame() {
       <h1 className="text-4xl font-bold mb-2">Hemi Memory Game</h1>
       <h2 className="text-2xl font-semibold mb-4">Match the cards and beat the clock!</h2>
 
-      <input
-        type="text"
-        value={playerName}
-        onChange={(e) => setPlayerName(e.target.value)}
-        placeholder="Enter your name"
-        className="mb-4 px-4 py-2 rounded shadow text-center text-base"
-      />
+      {!nameSubmitted && (
+        <div className="mb-6 text-center">
+          <input
+            type="text"
+            placeholder="Enter your name"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            className="px-4 py-2 rounded text-black mr-2"
+          />
+          <button
+            onClick={() => setNameSubmitted(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+            disabled={!playerName.trim()}
+          >
+            Start Game
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-5xl items-start">
         <div className="p-4 bg-orange-400 rounded-xl shadow-lg w-full md:w-[520px]">
@@ -154,7 +183,7 @@ export default function MemoryGame() {
           <ul className="space-y-2 text-base">
             {leaderboard.map((entry, index) => (
               <li key={index} className="flex justify-between border-b pb-1">
-                <span>{entry.name}</span>
+                <span>{entry.name || "Unknown"}</span>
                 <span>{entry.time}s</span>
               </li>
             ))}
@@ -170,7 +199,7 @@ export default function MemoryGame() {
       )}
 
       <footer className="mt-10 text-center text-gray-700 text-sm">
-        Made with ❤️ by <a href="https://x.com/Ivankakone" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">Gladiy</a>
+        Made with ❤️ by <a href="https://x.com/Ivankakone" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">Gladii</a>
       </footer>
     </div>
   );
