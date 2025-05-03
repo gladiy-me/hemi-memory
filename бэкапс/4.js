@@ -1,3 +1,4 @@
+// MemoryGame.js
 import { useState, useEffect } from "react";
 import { supabase } from '../lib/supabaseClient';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -78,6 +79,7 @@ export default function MemoryGame() {
       setLeaderboard(data);
     }
   }
+
   function handleFlip(card) {
     if (!isConnected || chainId !== HEMI_MAINNET_CHAIN_ID) {
       return alert("Please connect to Hemi Mainnet to play.");
@@ -140,50 +142,25 @@ export default function MemoryGame() {
     setTime(0);
     setTimerRunning(false);
   }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center p-4 font-sans relative" style={{ backgroundImage: 'url("/background-orange.png")' }}>
       <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-        <button onClick={() => setShowRules(true)} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow hover:scale-105 transition-transform duration-200">RULES</button>
-        <button onClick={resetGame} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow hover:scale-105 transition-transform duration-200">Reset</button>
-        <button onClick={() => window.location.href = '/leaderboard'} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow hover:scale-105 transition-transform duration-200">Top 100</button>
+        <button onClick={() => setShowRules(true)} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow text-center transform transition-transform duration-200 hover:scale-105">RULES</button>
+        <button onClick={resetGame} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow text-center transform transition-transform duration-200 hover:scale-105">Reset</button>
+        <button onClick={() => window.location.href = '/leaderboard'} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow text-center transform transition-transform duration-200 hover:scale-105">Top 100</button>
       </div>
 
       <div className="absolute top-4 left-4">
         <ConnectButton />
-        {isClient && isConnected && (
-          <div className="mt-2 text-white text-sm">
-            Address: {address.slice(0, 6)}...{address.slice(-4)}
-          </div>
-        )}
-        {isClient && isConnected && chainId !== HEMI_MAINNET_CHAIN_ID && (
-          <div className="mt-2 text-sm text-red-700 font-semibold">
-            Please switch to Hemi Mainnet to play the game.
-          </div>
-        )}
+        {isClient && isConnected && (<div className="mt-2 text-white text-sm">Address: {address.slice(0, 6)}...{address.slice(-4)}</div>)}
+        {isClient && isConnected && chainId !== HEMI_MAINNET_CHAIN_ID && (<div className="mt-2 text-sm text-red-700 font-semibold">Please switch to Hemi Mainnet to play the game.</div>)}
       </div>
 
       <div className="flex gap-4 my-4">
-        {["easy", "medium", "hard"].map(level => (
-          <button
-            key={level}
-            onClick={() => { setMode(level); resetGame(); }}
-            className={`px-4 py-2 w-24 rounded ${
-              mode === level
-                ? level === "easy"
-                  ? "bg-green-600 text-white"
-                  : level === "medium"
-                  ? "bg-yellow-500 text-white"
-                  : "bg-red-500 text-white"
-                : level === "easy"
-                ? "bg-white text-green-600"
-                : level === "medium"
-                ? "bg-white text-yellow-600"
-                : "bg-white text-red-600"
-            }`}
-          >
-            {level.charAt(0).toUpperCase() + level.slice(1)}
-          </button>
-        ))}
+        <button onClick={() => { setMode('easy'); resetGame(); }} className={`px-4 py-2 w-24 rounded ${mode === 'easy' ? 'bg-green-600 text-white' : 'bg-white text-green-600'}`}>Easy</button>
+        <button onClick={() => { setMode('medium'); resetGame(); }} className={`px-4 py-2 w-24 rounded ${mode === 'medium' ? 'bg-yellow-500 text-white' : 'bg-white text-yellow-600'}`}>Medium</button>
+        <button onClick={() => { setMode('hard'); resetGame(); }} className={`px-4 py-2 w-24 rounded ${mode === 'hard' ? 'bg-red-500 text-white' : 'bg-white text-red-600'}`}>Hard</button>
       </div>
 
       <h1 className="text-4xl font-bold mb-2">Hemi Memory Game</h1>
@@ -191,10 +168,10 @@ export default function MemoryGame() {
 
       <div className="flex flex-col md:flex-row gap-6 w-full max-w-7xl items-start">
         <div className="p-4 bg-orange-400 rounded-xl shadow-lg w-full max-w-5xl md:mr-auto">
-          <div className="flex items-center justify-between mb-4 text-white font-semibold text-lg">
-            <p>Score: {score}</p>
-            <p>Mistakes: {mistakes}</p>
-            <p>Time: {time} sec</p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-lg font-semibold text-white">Score: {score}</p>
+            <p className="text-lg font-semibold text-white">Mistakes: {mistakes}</p>
+            <p className="text-lg font-semibold text-white">Time: {time} sec</p>
           </div>
           <div className="grid gap-4" style={{ gridTemplateColumns: mode === 'easy' ? 'repeat(4, 1fr)' : 'repeat(auto-fit, minmax(120px, 1fr))' }}>
             {cards.map((card) => {
@@ -215,16 +192,13 @@ export default function MemoryGame() {
             })}
           </div>
         </div>
-
-        <div className="w-full md:w-96 bg-white p-4 rounded-xl shadow-lg text-black">
+        <div className="w-full md:w-96 bg-white bg-opacity-90 p-4 rounded-xl shadow-lg text-black">
           <h2 className="text-xl font-bold mb-3 text-center">🏆 Leaderboard</h2>
-          <ul className="space-y-2 text-base">
+          <ul className="space-y-2 text-sm">
             {leaderboard.map((entry, index) => (
-              <li key={index} className="flex justify-between items-center bg-white px-3 py-2 rounded-md shadow-sm text-black">
-                <span className="truncate w-48 font-medium">
-                  {entry.name?.startsWith("0x") ? `${entry.name.slice(0, 6)}...${entry.name.slice(-4)}` : entry.name || "Unknown"}
-                </span>
-                <span className="font-bold">{entry.finalScore}</span>
+              <li key={index} className="flex justify-between border-b pb-1">
+                <span className="truncate w-48">{entry.name || "Unknown"}</span>
+                <span>{entry.finalScore}</span>
               </li>
             ))}
           </ul>
@@ -237,6 +211,8 @@ export default function MemoryGame() {
           <button onClick={resetGame} className="px-4 py-2 bg-blue-500 text-white rounded text-base">Play Again</button>
         </div>
       )}
+
+      <div className="pb-16" />
 
       {showRules && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
