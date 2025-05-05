@@ -253,9 +253,19 @@ export default function MemoryGame() {
         </div>
       )}
 
-      <footer className="mt-10 text-center text-gray-700 text-sm">
-        Made with ❤️ by <a href="https://x.com/Ivankakone" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">Gladiy</a>
-      </footer>
+<footer className="mt-10 text-center text-gray-700 text-sm">
+  Made with ❤️ by <a href="https://x.com/hemiheads" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">hemiheads</a>
+  <div className="mt-2">
+    <a
+      href="https://hemiheads.gitbook.io/https-www.hemiheads.xyz"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block mt-2 px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors duration-200 text-sm font-semibold"
+    >
+      📘 Docs
+    </a>
+  </div>
+</footer>
 
       <style jsx global>{`
         .perspective { perspective: 1000px; }
