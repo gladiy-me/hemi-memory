@@ -15,14 +15,17 @@ function createCards(ids) {
 }
 
 function shuffleArray(array) {
-  return [...array, ...array]
-    .sort(() => Math.random() - 0.5)
-    .map((card, index) => ({ ...card, uniqueId: index }));
+  const duplicated = [...array, ...array];
+  for (let i = duplicated.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [duplicated[i], duplicated[j]] = [duplicated[j], duplicated[i]];
+  }
+  return duplicated.map((card, index) => ({ ...card, uniqueId: `card-${card.id}-${index}` }));
 }
 
 export default function MemoryGame() {
   const [mode, setMode] = useState('easy');
-  const [cards, setCards] = useState(shuffleArray(createCards(cardSets[mode])));
+  const [cards, setCards] = useState([]);
   const [flipped, setFlipped] = useState([]);
   const [matched, setMatched] = useState([]);
   const [score, setScore] = useState(0);
@@ -41,11 +44,19 @@ export default function MemoryGame() {
   const HEMI_MAINNET_CHAIN_ID = 43111;
 
   useEffect(() => setIsClient(true), []);
-  useEffect(() => { fetchLeaderboard(); resetGame(); }, [mode]);
+
+  useEffect(() => {
+    const newCards = createCards(cardSets[mode]);
+    setCards(shuffleArray(newCards));
+    resetGame();
+    fetchLeaderboard();
+  }, [mode]);
 
   useEffect(() => {
     if (isConnected && chainId === HEMI_MAINNET_CHAIN_ID) {
       setPlayerName(address);
+    } else {
+      setPlayerName("");
     }
   }, [isConnected, address, chainId]);
 
@@ -61,7 +72,9 @@ export default function MemoryGame() {
     const { error } = await supabase
       .from('leaderboard')
       .insert([{ name, score, time, mistakes, finalScore, mode }]);
-    if (error) console.error('Ошибка сохранения:', error);
+    if (error) {
+      alert('Failed to save result. Please try again.');
+    }
   }
 
   async function fetchLeaderboard() {
@@ -73,11 +86,12 @@ export default function MemoryGame() {
       .limit(10);
 
     if (error) {
-      console.error('Ошибка загрузки лидерборда:', error);
+      alert('Failed to load leaderboard.');
     } else {
       setLeaderboard(data);
     }
   }
+
   function handleFlip(card) {
     if (!isConnected || chainId !== HEMI_MAINNET_CHAIN_ID) {
       return alert("Please connect to Hemi Mainnet to play.");
@@ -95,7 +109,7 @@ export default function MemoryGame() {
       const firstCard = cards.find((card) => card.uniqueId === firstId);
       const secondCard = cards.find((card) => card.uniqueId === secondId);
 
-      if (firstCard.id === secondCard.id) {
+      if (firstCard && secondCard && firstCard.id === secondCard.id) {
         setMatched((prev) => [...prev, firstId, secondId]);
         setScore((prev) => prev + 1);
       } else {
@@ -115,20 +129,20 @@ export default function MemoryGame() {
           functionName: 'submitScore',
           args: [time, score],
         });
-        console.log('✅ записано в контракт');
+        alert('Your score has been successfully recorded to the blockchain!');
       } catch (err) {
-        console.error('❌ ошибка при записи:', err);
+        alert('Failed to record score to the blockchain. Please try again.');
       }
     }
 
-    if (matched.length === cards.length && timerRunning && playerName) {
+    if (matched.length === cards.length && cards.length > 0 && timerRunning && playerName) {
       setTimerRunning(false);
       const finalScore = score * 100 - time * 2 - mistakes * 10;
       saveResult(playerName, score, time, mistakes, finalScore);
       fetchLeaderboard();
       recordScore(finalScore);
     }
-  }, [matched, cards.length, timerRunning, playerName, score, time, mistakes]);
+  }, [matched, cards, timerRunning, playerName, score, time, mistakes]);
 
   function resetGame() {
     const newCards = createCards(cardSets[mode]);
@@ -140,6 +154,7 @@ export default function MemoryGame() {
     setTime(0);
     setTimerRunning(false);
   }
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center p-4 font-sans relative" style={{ backgroundImage: 'url("/background-orange.png")' }}>
       <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
@@ -166,7 +181,7 @@ export default function MemoryGame() {
         {["easy", "medium", "hard"].map(level => (
           <button
             key={level}
-            onClick={() => { setMode(level); resetGame(); }}
+            onClick={() => setMode(level)}
             className={`px-4 py-2 w-24 rounded ${
               mode === level
                 ? level === "easy"
@@ -231,7 +246,7 @@ export default function MemoryGame() {
         </div>
       </div>
 
-      {matched.length === cards.length && (
+      {matched.length === cards.length && cards.length > 0 && (
         <div className="mt-6">
           <p className="text-xl font-semibold mb-4">You matched all cards! 🎉</p>
           <button onClick={resetGame} className="px-4 py-2 bg-blue-500 text-white rounded text-base">Play Again</button>
@@ -253,19 +268,19 @@ export default function MemoryGame() {
         </div>
       )}
 
-<footer className="mt-10 text-center text-gray-700 text-sm">
-  Made with ❤️ by <a href="https://x.com/hemiheads" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">hemiheads</a>
-  <div className="mt-2">
-    <a
-      href="https://hemiheads.gitbook.io/https-www.hemiheads.xyz"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-block mt-2 px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors duration-200 text-sm font-semibold"
-    >
-      📘 Docs
-    </a>
-  </div>
-</footer>
+      <footer className="mt-10 text-center text-gray-700 text-sm">
+        Made with ❤️ by <a href="https://x.com/hemiheads" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">hemiheads</a>
+        <div className="mt-2">
+          <a
+            href="https://hemiheads.gitbook.io/https-www.hemiheads.xyz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-2 px-4 py-2 text-white bg-orange-500 rounded hover:bg-orange-600 transition-colors duration-200 text-sm font-semibold"
+          >
+            📘 Docs
+          </a>
+        </div>
+      </footer>
 
       <style jsx global>{`
         .perspective { perspective: 1000px; }
