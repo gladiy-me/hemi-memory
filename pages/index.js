@@ -46,8 +46,6 @@ export default function MemoryGame() {
   useEffect(() => setIsClient(true), []);
 
   useEffect(() => {
-    const newCards = createCards(cardSets[mode]);
-    setCards(shuffleArray(newCards));
     resetGame();
     fetchLeaderboard();
   }, [mode]);
@@ -154,8 +152,7 @@ export default function MemoryGame() {
     setTime(0);
     setTimerRunning(false);
   }
-
-  return (
+    return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-cover bg-center p-4 font-sans relative" style={{ backgroundImage: 'url("/background-orange.png")' }}>
       <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
         <button onClick={() => setShowRules(true)} className="w-32 px-4 py-2 bg-white text-orange-500 font-bold rounded shadow hover:scale-105 transition-transform duration-200">RULES</button>
