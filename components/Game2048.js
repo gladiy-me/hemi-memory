@@ -144,11 +144,23 @@ export default function Game2048() {
     }
   }
 
+  async function saveResultToSupabase() {
+    if (!address) return;
+    try {
+      await supabase.from('leaderboard_2048').insert([
+        { name: address, score: score },
+      ]);
+    } catch (error) {
+      console.error('Failed to save to Supabase:', error);
+    }
+  }
+
   function checkEndGame(board) {
     const flat = board.flat();
     if (flat.includes(2048) || !hasMoves(board)) {
       setGameOver(true);
       saveResultToChain();
+      saveResultToSupabase();
     }
   }
 
@@ -158,9 +170,20 @@ export default function Game2048() {
     newBoard = addRandomTile(newBoard);
     setBoard(newBoard);
     setGameOver(false);
-    if (score > best) setBest(score);
     setScore(0);
   }
+
+  useEffect(() => {
+    const storedBest = localStorage.getItem('best2048');
+    if (storedBest) setBest(Number(storedBest));
+  }, []);
+
+  useEffect(() => {
+    if (score > best) {
+      setBest(score);
+      localStorage.setItem('best2048', score);
+    }
+  }, [score]);
 
   useEffect(() => {
     fetchLeaderboard();
