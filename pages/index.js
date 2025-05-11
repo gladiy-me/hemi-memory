@@ -10,7 +10,7 @@ const games = [
     title: 'Hemi Memory',
     description: 'Find matching cards before time runs out',
     image: '/images/memory-thumb.png',
-    link: '/games/memory',
+    link: '/memory',
   },
   {
     title: 'Hemi 2048',
