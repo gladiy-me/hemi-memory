@@ -17,6 +17,12 @@ const games = [
     description: 'Combine numbers to reach 2048!',
     image: '/images/2048-thumb.png',
     link: '/games/2048',
+  },
+  {
+    title: 'Hemi Flappy',
+    description: 'Fly, dodge, and survive the chaos!',
+    image: '/images/flappy-thumb.png',
+    link: '/games/flappy',
   }
 ];
 
@@ -59,6 +65,7 @@ export default function GameHub() {
         backgroundPosition: 'center',
       }}
     >
+      {/* Подключение кошелька и счет */}
       <div className="absolute top-4 right-4 text-right">
         <ConnectButton />
         {isConnected && totalScore !== null && (
@@ -68,9 +75,20 @@ export default function GameHub() {
         )}
       </div>
 
-      <h1 className="text-4xl font-bold text-center mb-8">🎮 Hemi Game Hub</h1>
+      {/* Парящий логотип */}
+      <div className="relative w-full flex justify-center">
+        <img
+          src="/images/your-logo.png"
+          alt="Hemi Logo"
+          className="w-200 h-auto -mt-20"
+          style={{
+            animation: 'float 3s ease-in-out infinite',
+          }}
+        />
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+      {/* Карточки игр */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-5xl mx-auto -mt-30">
         {games.map((game, index) => (
           <Link href={game.link} key={index}>
             <div className="cursor-pointer bg-orange-100 hover:bg-orange-200 border border-orange-300 text-black rounded-xl shadow-md hover:shadow-lg p-4 text-center transition-transform transform hover:scale-105 duration-200">
@@ -86,6 +104,7 @@ export default function GameHub() {
         ))}
       </div>
 
+      {/* Футер */}
       <footer className="mt-10 text-center text-white text-sm">
         Made with ❤️ by{' '}
         <a
@@ -97,6 +116,15 @@ export default function GameHub() {
           hemiheads
         </a>
       </footer>
+
+      {/* Анимация float */}
+      <style jsx>{`
+        @keyframes float {
+          0%   { transform: translateY(0px); }
+          50%  { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
+        }
+      `}</style>
     </div>
   );
 }

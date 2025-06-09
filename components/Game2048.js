@@ -1,13 +1,52 @@
 // components/Game2048.js
 import { useEffect, useState } from "react";
-import { supabase } from '../lib/supabaseClient';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useChainId, useWriteContract } from 'wagmi';
-import HemiMemoryABI from '../lib/HemiMemoryABI.json';
+import { supabase } from "../lib/supabaseClient";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount, useChainId, useWriteContract } from "wagmi";
 
+// ABI вашего MemoryScores-контракта
+const MemoryABI = [
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "address", name: "player", type: "address" },
+      { indexed: false, internalType: "uint256", name: "score", type: "uint256" },
+      { indexed: false, internalType: "uint256", name: "timestamp", type: "uint256" }
+    ],
+    name: "NewScore",
+    type: "event"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "score", type: "uint256" }],
+    name: "submitScore",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "totalPlays",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "index", type: "uint256" }],
+    name: "getPlay",
+    outputs: [
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
+      { internalType: "uint256", name: "", type: "uint256" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  }
+];
+
+// Жёстко вписанный адрес контракта
+const CONTRACT_ADDRESS = "0x91e640523BEfbF095E6FEdf3a0a402350FD13f05";
 const SIZE = 4;
 const HEMI_MAINNET_CHAIN_ID = 43111;
-const CONTRACT_ADDRESS = "0x9b618640424FC34da8406ea307ed46Ff72eac506";
 
 function createEmptyBoard() {
   return Array(SIZE).fill(null).map(() => Array(SIZE).fill(0));
@@ -15,11 +54,9 @@ function createEmptyBoard() {
 
 function getRandomEmptyCell(board) {
   const empty = [];
-  board.forEach((row, y) => {
-    row.forEach((cell, x) => {
-      if (cell === 0) empty.push([y, x]);
-    });
-  });
+  board.forEach((row, y) =>
+    row.forEach((cell, x) => cell === 0 && empty.push([y, x]))
+  );
   if (empty.length === 0) return null;
   return empty[Math.floor(Math.random() * empty.length)];
 }
@@ -91,7 +128,8 @@ function hasMoves(board) {
 }
 
 function getTileStyle(value) {
-  const base = "flex items-center justify-center text-4xl font-bold rounded-lg shadow-inner transition-all duration-300 ease-in-out transform animate-fade-in";
+  const base =
+    "flex items-center justify-center text-4xl font-bold rounded-lg shadow-inner transition-all duration-300 ease-in-out transform animate-fade-in";
   const colors = {
     0: "bg-orange-200 text-transparent",
     2: "bg-orange-100 text-orange-800",
@@ -104,9 +142,9 @@ function getTileStyle(value) {
     256: "bg-orange-900 text-white",
     512: "bg-orange-900 text-white",
     1024: "bg-orange-900 text-white",
-    2048: "bg-black text-white",
+    2048: "bg-black text-white"
   };
-  return `${base} ${colors[value] || 'bg-orange-900 text-white'}`;
+  return `${base} ${colors[value] || "bg-orange-900 text-white"}`;
 }
 
 export default function Game2048() {
@@ -116,42 +154,46 @@ export default function Game2048() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [showRules, setShowRules] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { writeContractAsync } = useWriteContract();
 
+  // Supabase fetch
   async function fetchLeaderboard() {
     const { data, error } = await supabase
-      .from('leaderboard_2048')
-      .select('*')
-      .order('score', { ascending: false })
+      .from("leaderboard_2048")
+      .select("*")
+      .order("score", { ascending: false })
       .limit(10);
-
     if (!error && data) setLeaderboard(data);
   }
 
+  // Запись в блокчейн
   async function saveResultToChain() {
     if (!isConnected || chainId !== HEMI_MAINNET_CHAIN_ID) return;
     try {
-      await writeContractAsync({
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESS,
-        abi: HemiMemoryABI,
-        functionName: 'submitScore',
-        args: [score, score],
+        abi: MemoryABI,
+        functionName: "submitScore",
+        args: [score]
       });
+      console.log("Submitted to chain, txHash:", txHash);
     } catch (err) {
-      console.error('Failed to submit score');
+      console.error("Failed to submit score to chain:", err);
     }
   }
 
+  // Запись в Supabase
   async function saveResultToSupabase() {
     if (!address) return;
     try {
-      await supabase.from('leaderboard_2048').insert([
-        { name: address, score: score },
+      await supabase.from("leaderboard_2048").insert([
+        { name: address, score: score }
       ]);
     } catch (error) {
-      console.error('Failed to save to Supabase:', error);
+      console.error("Failed to save to Supabase:", error);
     }
   }
 
@@ -174,14 +216,14 @@ export default function Game2048() {
   }
 
   useEffect(() => {
-    const storedBest = localStorage.getItem('best2048');
+    const storedBest = localStorage.getItem("best2048");
     if (storedBest) setBest(Number(storedBest));
   }, []);
 
   useEffect(() => {
     if (score > best) {
       setBest(score);
-      localStorage.setItem('best2048', score);
+      localStorage.setItem("best2048", score);
     }
   }, [score]);
 
@@ -193,11 +235,15 @@ export default function Game2048() {
   useEffect(() => {
     function handleKey(e) {
       if (gameOver) return;
-      let newBoard, moved;
+      let newBoard,
+        moved;
       if (e.key === "ArrowLeft") {
         [newBoard, moved] = moveLeft(board, setScore);
       } else if (e.key === "ArrowRight") {
-        [newBoard, moved] = moveLeft(rotateLeft(rotateLeft(board)), setScore);
+        [newBoard, moved] = moveLeft(
+          rotateLeft(rotateLeft(board)),
+          setScore
+        );
         newBoard = rotateRight(rotateRight(newBoard));
       } else if (e.key === "ArrowUp") {
         [newBoard, moved] = moveLeft(rotateLeft(board), setScore);
@@ -219,7 +265,14 @@ export default function Game2048() {
   }, [board, gameOver]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center text-orange-900 p-4 relative" style={{ backgroundImage: 'url("/background-orange.png")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+    <div
+      className="min-h-screen flex flex-col items-center text-orange-900 p-4 relative"
+      style={{
+        backgroundImage: 'url("/background-orange.png")',
+        backgroundSize: "cover",
+        backgroundPosition: "center"
+      }}
+    >
       <div className="absolute top-4 left-4">
         <ConnectButton />
       </div>
@@ -269,7 +322,7 @@ export default function Game2048() {
                   className={getTileStyle(num)}
                   style={{ width: "100px", height: "100px" }}
                 >
-                  {num !== 0 ? num : ''}
+                  {num !== 0 ? num : ""}
                 </div>
               ))}
             </div>
@@ -278,9 +331,14 @@ export default function Game2048() {
               <h2 className="text-xl font-bold mb-3 text-center">🏆 Leaderboard</h2>
               <ul className="space-y-2 text-base">
                 {leaderboard.map((entry, index) => (
-                  <li key={index} className="flex justify-between items-center bg-white px-3 py-2 rounded-md shadow-sm text-black">
+                  <li
+                    key={index}
+                    className="flex justify-between items-center bg-white px-3 py-2 rounded-md shadow-sm text-black"
+                  >
                     <span className="truncate w-40 font-medium">
-                      {entry.name?.startsWith("0x") ? `${entry.name.slice(0, 6)}...${entry.name.slice(-4)}` : entry.name || "Unknown"}
+                      {entry.name?.startsWith("0x")
+                        ? `${entry.name.slice(0, 6)}...${entry.name.slice(-4)}`
+                        : entry.name || "Unknown"}
                     </span>
                     <span className="font-bold">{entry.score}</span>
                   </li>
@@ -292,7 +350,15 @@ export default function Game2048() {
       </div>
 
       <footer className="mt-10 text-center text-gray-700 text-sm">
-        Made with ❤️ by <a href="https://x.com/hemiheads" target="_blank" rel="noopener noreferrer" className="text-blue-800 underline">hemiheads</a>
+        Made with ❤️ by{" "}
+        <a
+          href="https://x.com/hemiheads"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-800 underline"
+        >
+          hemiheads
+        </a>
       </footer>
 
       {showRules && (
@@ -304,7 +370,12 @@ export default function Game2048() {
               <li>When two tiles with the same number touch, they merge into one.</li>
               <li>Try to reach the 2048 tile!</li>
             </ul>
-            <button onClick={() => setShowRules(false)} className="mt-4 px-4 py-2 bg-orange-500 text-white rounded">Close</button>
+            <button
+              onClick={() => setShowRules(false)}
+              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
