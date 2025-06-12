@@ -15,6 +15,9 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
 
+  // признак необходимости подключения кошелька
+  const needConnect = !isConnected || chainId !== HEMI_MAINNET_CHAIN_ID;
+
   // 1) Инициализация Unity один раз
   useEffect(() => {
     const script = document.createElement("script");
@@ -44,7 +47,7 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
     };
   }, []);
 
-  // 2) Регистрация колбэка GameOver при изменении кошелька/сети
+  // 2) Регистрация коллбэка GameOver при изменении кошелька/сети
   useEffect(() => {
     window.onFlappyGameOver = async (score) => {
       console.log("🔥 GameOver callback:", score);
@@ -99,7 +102,7 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
     };
   }, [address, chainId, isConnected]);
 
-  // Анонимизация адреса: первые 3 и последние 5 символов
+  // Функция анонимизации адреса
   const anonymize = (addr) => (addr ? `${addr.slice(0, 3)}…${addr.slice(-5)}` : "—");
 
   return (
@@ -113,6 +116,48 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
         padding: 0,
       }}
     >
+      {/* Оранжевый оверлей для подключения */}
+      {needConnect && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0,0,0,0.8)",
+            zIndex: 2000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <p style={{ color: "#fff", fontSize: 24, marginBottom: 16 }}>
+            Пожалуйста, подключите кошелёк Hemi Mainnet
+          </p>
+          <button
+            onClick={async () => {
+              try {
+                await window.ethereum.request({ method: "eth_requestAccounts" });
+              } catch {}
+            }}
+            style={{
+              background: "orange",
+              color: "#000",
+              border: "none",
+              padding: "12px 24px",
+              borderRadius: 4,
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            Подключить кошелёк
+          </button>
+        </div>
+      )}
+
+      {/* Классическая кнопка RainbowKit */}
       <div style={{ position: "fixed", top: 16, left: 16, zIndex: 1000 }}>
         <ConnectButton showBalance={false} />
       </div>
