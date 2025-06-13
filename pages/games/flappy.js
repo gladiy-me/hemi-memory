@@ -15,10 +15,16 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
 
-  // признак необходимости подключения кошелька
-  const needConnect = !isConnected || chainId !== HEMI_MAINNET_CHAIN_ID;
+  // Client mount flag to avoid hydration mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  // 1) Инициализация Unity один раз
+  // Only show connect overlay after mounting
+  const needConnect = mounted && (!isConnected || chainId !== HEMI_MAINNET_CHAIN_ID);
+
+  // 1) Initialize Unity once
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "/flappy/Build/flappy.loader.js";
@@ -47,14 +53,14 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
     };
   }, []);
 
-  // 2) Регистрация коллбэка GameOver при изменении кошелька/сети
+  // 2) Register GameOver callback when wallet or network changes
   useEffect(() => {
     window.onFlappyGameOver = async (score) => {
       console.log("🔥 GameOver callback:", score);
       setErrorLeaders(null);
 
       if (!isConnected || chainId !== HEMI_MAINNET_CHAIN_ID) {
-        setErrorLeaders("Подключите кошелёк Hemi Mainnet");
+        setErrorLeaders("Please connect to Hemi Mainnet");
         return;
       }
 
@@ -92,8 +98,8 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
         console.error("Error on GameOver flow:", err);
         setErrorLeaders(
           err.message.includes("User rejected")
-            ? "Транзакция отклонена"
-            : "Не удалось отправить результат"
+            ? "Transaction rejected"
+            : "Failed to submit result"
         );
       }
     };
@@ -102,8 +108,19 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
     };
   }, [address, chainId, isConnected]);
 
-  // Функция анонимизации адреса
+  // Function to anonymize address
   const anonymize = (addr) => (addr ? `${addr.slice(0, 3)}…${addr.slice(-5)}` : "—");
+
+  // Wallet connect handler
+  const connectWallet = async () => {
+    try {
+      if (window.ethereum) {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+      }
+    } catch (e) {
+      console.error("Wallet connect error", e);
+    }
+  };
 
   return (
     <div
@@ -116,7 +133,7 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
         padding: 0,
       }}
     >
-      {/* Оранжевый оверлей для подключения */}
+      {/* Overlay to prompt wallet connection */}
       {needConnect && (
         <div
           style={{
@@ -134,15 +151,9 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
           }}
         >
           <p style={{ color: "#fff", fontSize: 24, marginBottom: 16 }}>
-            Пожалуйста, подключите кошелёк Hemi Mainnet
+            Please connect your Hemi Mainnet wallet
           </p>
-          <button
-            onClick={async () => {
-              try {
-                await window.ethereum.request({ method: "eth_requestAccounts" });
-              } catch {}
-            }}
-            style={{
+          <button onClick={connectWallet} style={{
               background: "orange",
               color: "#000",
               border: "none",
@@ -150,17 +161,18 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
               borderRadius: 4,
               fontSize: 16,
               cursor: "pointer",
-            }}
-          >
-            Подключить кошелёк
+            }}>
+            Connect Wallet
           </button>
         </div>
       )}
 
-      {/* Классическая кнопка RainbowKit */}
-      <div style={{ position: "fixed", top: 16, left: 16, zIndex: 1000 }}>
-        <ConnectButton showBalance={false} />
-      </div>
+      {/* RainbowKit connection button */}
+      {mounted && (
+        <div style={{ position: "fixed", top: 16, left: 16, zIndex: 1000 }}>
+          <ConnectButton showBalance={false} />
+        </div>
+      )}
 
       <button
         onClick={() => setModalOpen(true)}
@@ -229,7 +241,7 @@ export default function FlappyPage({ initialLeaders, fetchError }) {
               ×
             </button>
 
-            <h2 style={{ margin: 0, marginBottom: 12 }}>🏆 Топ-10 Flappy</h2>
+            <h2 style={{ margin: 0, marginBottom: 12 }}>🏆 Top 10 Flappy</h2>
             {errorLeaders ? (
               <p style={{ color: "tomato" }}>{errorLeaders}</p>
             ) : (
@@ -264,7 +276,7 @@ export async function getServerSideProps() {
   return {
     props: {
       initialLeaders: error ? [] : data,
-      fetchError: error ? "Не удалось загрузить leaderboard" : null,
+      fetchError: error ? "Failed to load leaderboard" : null,
     },
   };
 }
